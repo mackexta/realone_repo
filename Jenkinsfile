@@ -4,9 +4,9 @@ pipeline {
         VERSION = "${env.BUILD_ID}"
         AWS_ACCOUNT_ID="730335412936"
         AWS_DEFAULT_REGION="us-east-1"
-        IMAGE_REPO_NAME="jenkins-pipeline"
+        IMAGE_REPO_NAME="eric_pipeline"
         IMAGE_TAG= "${env.BUILD_ID}"
-        REPOSITORY_URI = "730335412936.dkr.ecr.us-east-1.amazonaws.com/jenkins-pipeline"
+        REPOSITORY_URI = "730335412936.dkr.ecr.us-east-1.amazonaws.com/eric_pipeline"
     }
     stages {
         
