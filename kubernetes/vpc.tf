@@ -1,5 +1,6 @@
 provider "aws" {
-    region = "us-east-1"
+  region    = "us-east-1"
+  profile   = "Nora_keys"
 }
 
 variable vpc_cidr_block {}
