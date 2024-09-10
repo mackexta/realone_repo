@@ -6,7 +6,7 @@ pipeline {
         AWS_DEFAULT_REGION="us-east-1"
         IMAGE_REPO_NAME="eric_pipeline"
         IMAGE_TAG= "${env.BUILD_ID}"
-        REPOSITORY_URI = "730335412936.dkr.ecr.us-east-1.amazonaws.com/eric_pipeline"
+        REPOSITORY_URI = "730335412936.dkr.ecr.us-east-1.amazonaws.com/nora_pipeline"
     }
     stages {
         
