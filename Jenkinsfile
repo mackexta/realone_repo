@@ -75,4 +75,15 @@ pipeline {
             steps {
                 script {
                     dir('kubernetes/') {
-                        sh 'aws eks update-kubeconfig
+                        sh 'aws eks update-kubeconfig --name myAppp-eks-cluster --region ${AWS_DEFAULT_REGION}'
+                        sh """
+                            aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | \
+                            docker login --username AWS --password-stdin ${REPOSITORY_URI}
+                        """
+                        sh 'helm upgrade --install --set image.repository=${REPOSITORY_URI} --set image.tag=${IMAGE_TAG} myjavaapp myapp/'
+                    }
+                }
+            }
+        }
+    }
+}
