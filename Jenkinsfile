@@ -2,23 +2,15 @@ pipeline {
     agent any
     environment {
         VERSION = "${env.BUILD_ID}"
-        AWS_ACCOUNT_ID = "730335412936"
-        AWS_DEFAULT_REGION = "us-east-1"
-        IMAGE_REPO_NAME = "nora_pipeline"
-        IMAGE_TAG = "${env.BUILD_ID}"
-        REPOSITORY_URI = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${IMAGE_REPO_NAME}"
+        AWS_ACCOUNT_ID= credentials('account_id')
+        AWS_DEFAULT_REGION="us-east-1"
+        IMAGE_REPO_NAME="image-repo"
+        IMAGE_TAG= "${env.BUILD_ID}"
+        REPOSITORY_URI = "775012328020.dkr.ecr.us-east-1.amazonaws.com/image-repo"
     }
-    
-    stages {  // All stages should be inside the "stages" block
-
-        stage('Git Checkout') {
-            steps {
-                // Simple Git checkout using URL
-                git url: 'https://github.com/Orangeorobosa123/realone-repo.git'
-            }
-        }
-
-        stage('Build with Maven') {
+    stages {
+        
+        stage('Build with maven') {
             steps {
                 sh 'cd SampleWebApp && mvn clean install'
             }
@@ -28,60 +20,72 @@ pipeline {
             steps {
                 sh 'cd SampleWebApp && mvn test'
             }
-        }
+        
+            }        
 
-        stage('Logging into AWS ECR') {
-            environment {
-                AWS_ACCESS_KEY_ID = credentials('aws_access_key_id')
-                AWS_SECRET_ACCESS_KEY = credentials('aws_secret_access_key')
+        stage('Code Qualty Scan') {
+
+           steps {
+                  withSonarQubeEnv('sonar-scanner') {
+             sh "mvn -f SampleWebApp/pom.xml sonar:sonar"      
+               }
             }
-            steps {
-                script {
-                    sh """
-                        aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | \
-                        docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com
-                    """
+       }
+        stage('Quality Gate') {
+          steps {
+                 waitForQualityGate abortPipeline: true
+              }
+        }     
+        
+        
+         stage('Logging into AWS ECR') {
+                     environment {
+                        AWS_ACCESS_KEY_ID = credentials('aws_access_key_id')
+                        AWS_SECRET_ACCESS_KEY = credentials('aws_secret_access_key')
+                         
+                   }
+                     steps {
+                       script{
+             
+                         sh """aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com"""
                 }
+                 
             }
         }
-
-        stage('Building Image') {
-            steps {
-                script {
-                    dockerImage = docker.build("${IMAGE_REPO_NAME}:${IMAGE_TAG}")
-                }
-            }
+      
+          stage('Building image') {
+            steps{
+              script {
+                dockerImage = docker.build "${IMAGE_REPO_NAME}:${IMAGE_TAG}"
         }
-
+      }
+    }
+        
         stage('Pushing to ECR') {
-            steps {  
-                script {
-                    sh """
-                        docker tag ${IMAGE_REPO_NAME}:${IMAGE_TAG} ${REPOSITORY_URI}:${IMAGE_TAG}
-                        docker push ${REPOSITORY_URI}:${IMAGE_TAG}
-                    """
-                }
-            }
+          steps{  
+            script {
+                sh """docker tag ${IMAGE_REPO_NAME}:${IMAGE_TAG} ${REPOSITORY_URI}:$IMAGE_TAG"""
+                sh """docker push ${REPOSITORY_URI}:$IMAGE_TAG"""
+         }
         }
+      }
+         
+         stage('pull image & Deploying UI application on eks cluster DEV') {
+                    environment {
+                       AWS_ACCESS_KEY_ID = credentials('aws_access_key_id')
+                       AWS_SECRET_ACCESS_KEY = credentials('aws_secret_access_key')
+                 }
+                    steps {
+                      script{
+                        dir('kubernetes/') {
+                          sh 'aws eks update-kubeconfig --name myAppp-eks-cluster --region us-east-1'
+                          sh """aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com"""
+                          sh 'helm upgrade --install --set image.repository="$REPOSITORY_URI" --set image.tag="${IMAGE_TAG}" myjavaapp myapp/ '
 
-        stage('Pull Image & Deploying UI Application on EKS Cluster DEV') {
-            environment {
-                AWS_ACCESS_KEY_ID = credentials('aws_access_key_id')
-                AWS_SECRET_ACCESS_KEY = credentials('aws_secret_access_key')
-            }
-            steps {
-                script {
-                    dir('kubernetes/') {
-                        sh """
-                            aws eks update-kubeconfig --name myAppp-eks-cluster --region us-east-1
-                            aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | \
-                            docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com
-                            helm upgrade --install --set image.repository="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${IMAGE_REPO_NAME}" \
-                            --set image.tag="${IMAGE_TAG}" myjavaapp myapp/
-                        """
+ 
+                        }
                     }
-                }
+               }
             }
-        }
     }
 }
