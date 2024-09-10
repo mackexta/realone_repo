@@ -4,9 +4,9 @@ pipeline {
         VERSION = "${env.BUILD_ID}"
         AWS_ACCOUNT_ID= "730335412936"
         AWS_DEFAULT_REGION="us-east-1"
-        IMAGE_REPO_NAME="image-repo"
+        IMAGE_REPO_NAME="nora_pipeline"
         IMAGE_TAG= "${env.BUILD_ID}"
-        REPOSITORY_URI = "730335412936.dkr.ecr.us-east-1.amazonaws.com/image-repo"
+        REPOSITORY_URI = "730335412936.dkr.ecr.us-east-1.amazonaws.com/nora_pipeline"
     }
     stages {
         
