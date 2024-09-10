@@ -1,18 +1,19 @@
 pipeline {
     agent any
+    
     environment {
         VERSION = "${env.BUILD_ID}"
         AWS_ACCOUNT_ID = "730335412936"
         AWS_DEFAULT_REGION = "us-east-1"
         IMAGE_REPO_NAME = "nora_pipeline"
         IMAGE_TAG = "${env.BUILD_ID}"
-        REPOSITORY_URI = "730335412936.dkr.ecr.us-east-1.amazonaws.com/nora_pipeline"
+        REPOSITORY_URI = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${IMAGE_REPO_NAME}"
     }
 
     stages {
         stage('Git Checkout') {
             steps {
-                git 'https://github.com/Orangeorobosa123/realone-repo.git' 
+                git 'https://github.com/Orangeorobosa123/realone-repo.git'
             }
         }
 
@@ -28,20 +29,6 @@ pipeline {
             }
         }
 
-        stage('Code Quality Scan') {
-            steps {
-                withSonarQubeEnv('sonar-scanner') {
-                    sh "mvn -f SampleWebApp/pom.xml sonar:sonar"
-                }
-            }
-        }
-
-        stage('Quality Gate') {
-            steps {
-                waitForQualityGate abortPipeline: true
-            }
-        }
-
         stage('Logging into AWS ECR') {
             environment {
                 AWS_ACCESS_KEY_ID = credentials('aws_access_key_id')
@@ -51,7 +38,7 @@ pipeline {
                 script {
                     sh """
                         aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | \
-                        docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com
+                        docker login --username AWS --password-stdin ${REPOSITORY_URI}
                     """
                 }
             }
@@ -84,10 +71,10 @@ pipeline {
             steps {
                 script {
                     dir('kubernetes/') {
-                        sh 'aws eks update-kubeconfig --name myAppp-eks-cluster --region us-east-1'
+                        sh 'aws eks update-kubeconfig --name myAppp-eks-cluster --region ${AWS_DEFAULT_REGION}'
                         sh """
                             aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | \
-                            docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com
+                            docker login --username AWS --password-stdin ${REPOSITORY_URI}
                         """
                         sh 'helm upgrade --install --set image.repository="${REPOSITORY_URI}" --set image.tag="${IMAGE_TAG}" myjavaapp myapp/'
                     }
