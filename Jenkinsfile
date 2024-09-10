@@ -12,7 +12,7 @@ pipeline {
     stages {
         stage('Git Checkout') {
             steps {
-                git url: 'https://github.com/Orangeorobosa123/realone-repo.git', branch: 'master'  
+                git 'https://github.com/Orangeorobosa123/realone-repo.git' 
             }
         }
 
