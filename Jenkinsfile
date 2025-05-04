@@ -4,7 +4,7 @@ pipeline {
         VERSION = "${env.BUILD_ID}"
         AWS_ACCOUNT_ID= credentials('account_id')
         AWS_DEFAULT_REGION="us-east-1"
-        IMAGE_REPO_NAME="image_repo"
+        IMAGE_REPO_NAME="test_repo"
         IMAGE_TAG= "${env.BUILD_ID}"
         REPOSITORY_URI = "536697248940.dkr.ecr.us-east-1.amazonaws.com/test_repo"
         MAVEN_OPTS="--add-opens java.base/java.lang=ALL-UNNAMED"
@@ -57,7 +57,7 @@ pipeline {
           stage('Building image') {
             steps{
               script {
-                dockerImage = docker.build "${TEST_REPO_NAME}:${IMAGE_TAG}"
+                dockerImage = docker.build "${IMAGE_REPO_NAME}:${IMAGE_TAG}"
         }
       }
     }
@@ -65,7 +65,7 @@ pipeline {
         stage('Pushing to ECR') {
           steps{  
             script {
-                sh """docker tag ${TEST_REPO_NAME}:${IMAGE_TAG} ${REPOSITORY_URI}:$IMAGE_TAG"""
+                sh """docker tag ${IMAGE_REPO_NAME}:${IMAGE_TAG} ${REPOSITORY_URI}:$IMAGE_TAG"""
                 sh """docker push ${REPOSITORY_URI}:$IMAGE_TAG"""
          }
         }
